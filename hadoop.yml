@@ -1,0 +1,88 @@
+- hosts: all
+  tasks:
+  - name: "Copying Hadoop Software to Master and Slave Nodes"
+    copy:
+      src: "/root/hadoop-1.2.1-1.x86_64.rpm"
+      dest: "/root/"
+
+  - name: "Copying Jdk file to Master and Slave Nodes"
+    copy:
+      src: "/root/jdk-8u171-linux-x64.rpm"
+      dest: "/root/"
+
+  - name: "Installing Jdk Software to Master and Slave Nodes"
+    command: "rpm -ivh /root/jdk-8u171-linux-x64.rpm"
+    ignore_errors: yes
+
+  - name: "Installing Hadoop Software to Master and Slave Nodes"
+    command: "rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force"
+
+
+
+- hosts: master
+  tasks:
+  - name: "Configuring hdfs-site.xml file in Master Node"
+    blockinfile:
+      path: "/etc/hadoop/hdfs-site.xml"
+      insertafter: "<configuration>"
+      content: |
+        <property>
+        <name>dfs.name.dir</name>
+        <value>/nn</value>
+        </property>
+
+  - name: "Creating directory for Name Node"
+    file:
+      path: "/nn"
+      state: "directory"
+
+  - name: "Configuring core-site.xml file in Master Node"
+    blockinfile:
+      path: "/etc/hadoop/core-site.xml"
+      insertafter: "<configuration>"
+      content: |
+        <property>
+        <name>fs.default.name</name>
+        <value>hdfs://192.168.0.106:9001</value>
+        </property>
+
+  - name: "Formatting Directory for Name Node"
+    command: "echo Y | hadoop namenode -format"
+    ignore_errors: yes
+
+  - name: "Starting Hadoop Service in Name Node"
+    command: "hadoop-daemon.sh start namenode"
+    ignore_errors: yes
+
+
+
+- hosts: slave
+  tasks:
+  - name: "Configuring hdfs-site.xml file in Slave Node"
+    blockinfile:
+      path: "/etc/hadoop/hdfs-site.xml"
+      insertafter: "<configuration>"
+      content: |
+        <property>
+        <name>dfs.data.dir</name>
+        <value>/dn</value>
+        </property>
+
+  - name: "Creating directory for Name Node"
+    file:
+      path: "/dn"
+      state: "directory"
+
+  - name: "Configuring core-site.xml file in Master Node"
+    blockinfile:
+      path: "/etc/hadoop/core-site.xml"
+      insertafter: "<configuration>"
+      content: |
+        <property>
+        <name>fs.default.name</name>
+        <value>hdfs://192.168.0.106:9001</value>
+        </property>
+
+  - name: "Starting Hadoop Service in Data Node"
+    command: "hadoop-daemon.sh start datanode"
+    ignore_errors: yes
